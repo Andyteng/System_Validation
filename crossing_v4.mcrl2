@@ -19,20 +19,11 @@ sort
 
 map	%Track is safe
 	isFree: TrState # TrState -> Bool;
-	setTraBusy: Bool # TrState -> Bool;
-
 eqn
 	isFree (FREE, FREE) = true; 
 	isFree (BUSY, FREE) = false;
 	isFree (FREE, BUSY) = false;
 	isFree (BUSY, BUSY) = false; 
-	
-	setTraBusy(true, FREE) = true;
-	setTraBusy(false,FREE) = false;
-	setTraBusy(true, BUSY) = false;
-	setTraBusy(false, BUSY) = false;
-
- 
 act 
 
 	% External interactions
@@ -69,27 +60,38 @@ proc
 
 	Signal_Controller(st1_e, st1_w, st2_e, st2_w: sensorState, st1_train, st2_train: sensorState, Track1, Track2: TrState, state: barState) = 
 		% The crossing is safe only while both tracks are free, otherwise, the crossing is busy.
-		  (isFree(Track1, Track2) && (state == CLOSE)) -> lights_sig_s(OPEN) . Signal_Controller(state = OPEN)
+		  ((isFree(Track1, Track2)) && (state == CLOSE)) -> lights_sig_s(OPEN) . Signal_Controller(state = OPEN)
 		% Situations for Track1 be free
-		+ ((st1_e == DETECTED || st1_w == DETECTED || st1_train == DETECTED) && Track1 == FREE) -> setTrState(T1, BUSY) . Signal_Controller(Track1 = BUSY, state = CLOSE)
-		<> ((st1_e == DETECTED || st1_w == DETECTED || st1_train == DETECTED) == false && Track1 == BUSY) ->setTrState(T1, FREE) . Signal_Controller(Track1 = FREE)
+		+ ((st1_e == DETECTED || st1_w == DETECTED || st1_train == DETECTED) && Track1 == FREE) -> 
+			setTrState(T1, BUSY) . Signal_Controller(Track1 = BUSY, state = CLOSE)
+		<> ((st1_e == DETECTED || st1_w == DETECTED || st1_train == DETECTED) == false && Track1 == BUSY) ->
+			setTrState(T1, FREE) . Signal_Controller(Track1 = FREE)
 		
 		% situations for Track2 be free
-		+ (st2_e == DETECTED || st2_w == DETECTED || st2_train == DETECTED) -> setTrState(T2, BUSY) . Signal_Controller(Track2 = BUSY, state = CLOSE)
-		<> ((st1_e == DETECTED || st1_w == DETECTED || st1_train == DETECTED) == false && Track2 == BUSY) -> setTrState(T2, FREE) . Signal_Controller(Track2 = FREE)
+		+ ((st2_e == DETECTED || st2_w == DETECTED || st2_train == DETECTED) && Track2 == FREE) -> 
+			setTrState(T2, BUSY) . Signal_Controller(Track2 = BUSY, state = CLOSE)
+		<> ((st2_e == DETECTED || st2_w == DETECTED || st2_train == DETECTED) == false && Track2 == BUSY) -> 
+			setTrState(T2, FREE) . Signal_Controller(Track2 = FREE)
 
 		% Sensors detection
-		+ (st1_e == UNDETECTED && state == OPEN) -> S1_e(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st1_e = DETECTED, state = CLOSE)
-		+ (st1_e == DETECTED) -> S1_e(UNDETECTED) . Signal_Controller(st1_e = UNDETECTED)
+		+ (st1_e == UNDETECTED && state == OPEN) -> 
+			S1_e(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st1_e = DETECTED, Track1 = BUSY, state = CLOSE)
+		+ <> (st1_e == DETECTED) -> 
+			S1_e(UNDETECTED) . Signal_Controller(st1_e = UNDETECTED)
+		+ <> (st1_w == UNDETECTED && state == OPEN) -> 
+			S1_w(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st1_w = DETECTED, Track1 = BUSY, state = CLOSE)
+		+ <> (st1_w == DETECTED) -> 
+			S1_w(UNDETECTED) . Signal_Controller(st1_w = UNDETECTED)
 		
-		+ (st1_w == UNDETECTED && state == OPEN) -> S1_w(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st1_w = DETECTED, state = CLOSE)
-		+ (st1_w == DETECTED) -> S1_w(UNDETECTED) . Signal_Controller(st1_w = UNDETECTED)
-
-		+ (st2_e == UNDETECTED && state == OPEN) -> S2_e(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st2_e = DETECTED, state = CLOSE)
-		+ (st2_e == DETECTED) -> S2_e(UNDETECTED) . Signal_Controller(st2_e = UNDETECTED)
-
-		+ (st2_w == UNDETECTED && state == OPEN) -> S2_w(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st2_w = DETECTED, state = CLOSE)
-		+ (st2_w == DETECTED) -> S2_w(UNDETECTED) . Signal_Controller(st2_w = UNDETECTED)
+		% for track 2
+		+ <>(st2_e == UNDETECTED && state == OPEN) -> 
+			S2_e(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st2_e = DETECTED, Track2 = BUSY, state = CLOSE)
+		+ <> (st2_e == DETECTED) -> 
+			S2_e(UNDETECTED) . Signal_Controller(st2_e = UNDETECTED)
+		+ <> (st2_w == UNDETECTED && state == OPEN) -> 
+			S2_w(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st2_w = DETECTED, Track2 = BUSY, state = CLOSE)
+		+ (st2_w == DETECTED) -> 
+			S2_w(UNDETECTED) . Signal_Controller(st2_w = UNDETECTED)
 ;
 
 
@@ -180,11 +182,12 @@ proc
  	Light_Controller(ls_sig: barState, bl_status: SigState, state: barState) = 
 		(ls_sig == CLOSE || bl_status == SEND) -> Lights(ON) . bell_sig(SEND) . Light_Controller()
 		+ lights_sig_r(CLOSE) . Light_Controller(ls_sig = CLOSE)
+		+ lights_sig_r(OPEN) . Light_Controller(ls_sig = OPEN)
 		+ sum i: SigState . bell_status(i) . Light_Controller(bl_status = i)
 	;
 	
 	
- %Bell_Controller(bl_sig: Bool, br_sig: Bool, )
+      	%Bell_Controller(bl_sig: Bool, br_sig: Bool, )
  %Barrier_Controller
 
 %sum safe = (S1_e == ON) -> 
@@ -193,9 +196,9 @@ proc
 init 
 
 	allow (
-		{lights_sig, S1_w, S1_e, Lights, setTrState, lights_sig_s, S1_train},
+		{lights_sig, S1_w, S1_e, S2_w, S2_e, Lights, setTrState, lights_sig_s},
 	comm (
-	{lights_sig_r|lights_sig_s -> lights_sig},
+	{lights_sig_s|lights_sig_r -> lights_sig},
 	Signal_Controller(UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, FREE, FREE, OPEN) %|| Light_Controller(OPEN, NOTSEND, OPEN)
 
 ));
