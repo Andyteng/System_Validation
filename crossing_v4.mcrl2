@@ -79,17 +79,44 @@ proc
 		+ sum i: sensorState . (st2_w != i) -> S2_w(i) . Signal_Controller(st2_w = i)
 
 ;
-	% Light controller
- 	Light_Controller(ls_sig: barState, bl_status: SigState, state: barState) = 
-		(ls_sig == CLOSE || bl_status == SEND) -> Lights(ON) . bell_sig(SEND) . Light_Controller()
+	
 
-		+ (ls_sig == OPEN) -> lights_sig_r(CLOSE) . Light_Controller(ls_sig = CLOSE)
-		+ (ls_sig == CLOSE) -> lights_sig_r(OPEN) . Light_Controller(ls_sig = OPEN)
-		+ sum i: SigState . bell_status(i) . Light_Controller(bl_status = i)
-	;
+Light_Controller(ls_sig: barState, bl_sig: Bool, bl_status: Bool, ls_on: Bool) = 
+
+	% If receives signal from Signal controller to close, bell signal is true and Lights are on:
+	(ls_sig == OPEN) -> lights_sig_r(CLOSE) . bell_sig_s(true) . Lights(true) . Light_Controller(ls_sig = CLOSE, bl_sig = true, ls_on = true)
+	
+	% If receives signal from Signal controller to open, bell signal is false and Lights wait for Bell status before they go off	
+	+ (ls_sig == CLOSE) -> lights_sig_r(OPEN) . bell_sig_s(false) . (bl_status == true) ->
+		Lights(true) . Light_Controller(ls_sig = OPEN, bl_sig = false, ls_on = true)
+		<>
+		Lights(false) . Light_Controller(ls_sig = OPEN, bl_sig = false, ls_on = false)
+	
+	% If Bell status changes: turn Lights On or Off (depending on ls_sig) 
+	+ sum i:Bool . bell_status_r(i) . (ls_sig == OPEN) -> 
+		Lights(i) . Light_Controller(bl_status = i, ls_on = i)
+		<>
+		Lights(true) . Light_Controller(bl_status = i, ls_on = true)
+;
 	
 	
-      	%Bell_Controller(bl_sig: Bool, br_sig: Bool, )
+Bell_Controller(bl_sig: Bool, br_sig: Bool, br_status: Bool, bl_on: Bool) = 
+
+	% If receives signal from Light controller to close, barrier signal is true and Bell is on:
+	(bl_sig == false) -> bell_sig_r(true) . barrier_sig_s(true) . Bell(true) . Bell_Controller(bl_sig = true, br_sig = true, bl_on = true)
+		
+	% If receives signal from Light controller to open, Barrier signal is false and Bell waits for Barrier status before it goes off	
+	+ (bl_sig == true) -> bell_sig_r(false) . barrier_sig_s(false) . (br_status) ->
+		Bell(true) . Bell_Controller(bl_sig = false, br_sig = false, bl_on = true)
+		<>
+		Bell(false) . Bell_Controller(bl_sig = false, br_sig = false, bl_on = false)
+
+	% If Barrier status changes: turn Bell On or Off (depending on bl_sig) 
+	+ sum i:Bool . barrier_status_r(i) . (bl_sig == true) -> 
+		Bell(i) . Bell_Controller(br_status = i, bl_on = i)
+		<>
+		Bell(true) . Bell_Controller(br_status = i, bl_on = true)
+
  %Barrier_Controller
 
 %sum safe = (S1_e == ON) -> 
