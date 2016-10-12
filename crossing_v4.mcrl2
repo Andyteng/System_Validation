@@ -79,6 +79,7 @@ proc
 		+ sum i: sensorState . (st2_w != i) -> S2_w(i) . Signal_Controller(st2_w = i)
 
 ;
+
 	
 
 Light_Controller(ls_sig: barState, bl_sig: Bool, bl_status: Bool, ls_on: Bool) = 
