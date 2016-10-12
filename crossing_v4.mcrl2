@@ -75,20 +75,21 @@ proc
 
 		% Sensors detection
 		+ (st1_e == UNDETECTED && state == OPEN) -> 
-			S1_e(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st1_e = DETECTED, Track1 = BUSY, state = CLOSE)
-		+ <> (st1_e == DETECTED) -> 
+			S1_e(DETECTED) . (lights_sig_s(CLOSE). Signal_Controller()
+	         + S1_w(DETECTED). Signal_Controller(st1_w = DETECTED)). Signal_Controller(st1_e = DETECTED, Track1 = BUSY, state = CLOSE)
+		+ (st1_e == DETECTED) -> 
 			S1_e(UNDETECTED) . Signal_Controller(st1_e = UNDETECTED)
-		+ <> (st1_w == UNDETECTED && state == OPEN) -> 
+		+ (st1_w == UNDETECTED && state == OPEN) -> 
 			S1_w(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st1_w = DETECTED, Track1 = BUSY, state = CLOSE)
-		+ <> (st1_w == DETECTED) -> 
+		+ (st1_w == DETECTED) -> 
 			S1_w(UNDETECTED) . Signal_Controller(st1_w = UNDETECTED)
 		
 		% for track 2
-		+ <>(st2_e == UNDETECTED && state == OPEN) -> 
+		+ (st2_e == UNDETECTED && state == OPEN) -> 
 			S2_e(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st2_e = DETECTED, Track2 = BUSY, state = CLOSE)
-		+ <> (st2_e == DETECTED) -> 
+		+ (st2_e == DETECTED) -> 
 			S2_e(UNDETECTED) . Signal_Controller(st2_e = UNDETECTED)
-		+ <> (st2_w == UNDETECTED && state == OPEN) -> 
+		+ (st2_w == UNDETECTED && state == OPEN) -> 
 			S2_w(DETECTED) . lights_sig_s(CLOSE) . Signal_Controller(st2_w = DETECTED, Track2 = BUSY, state = CLOSE)
 		+ (st2_w == DETECTED) -> 
 			S2_w(UNDETECTED) . Signal_Controller(st2_w = UNDETECTED)
