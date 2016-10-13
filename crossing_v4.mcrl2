@@ -79,7 +79,6 @@ proc
 		+ sum i: sensorState . (st2_w != i) -> S2_w(i) . Signal_Controller(st2_w = i)
 
 ;
-
 	
 
 Light_Controller(ls_sig: barState, bl_sig: Bool, bl_status: Bool, ls_on: Bool) = 
@@ -118,7 +117,7 @@ Bell_Controller(bl_sig: Bool, br_sig: Bool, br_status: Bool, bl_on: Bool) =
 		<>
 		Bell(true) . Bell_Controller(br_status = i, bl_on = true)
 
- %Barrier_Controller
+Barrier_Controller(br_sig: Bool
 
 %sum safe = (S1_e == ON) -> 
 
