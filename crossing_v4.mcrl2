@@ -19,6 +19,7 @@ sort
 
 map	%Track is safe
 	isFree: TrState # TrState -> Bool;
+	
 eqn
 	isFree (FREE, FREE) = true; 
 	isFree (BUSY, FREE) = false;
@@ -29,8 +30,8 @@ act
 	% External interactions
 	% action
 	Barriers	: Barrier # barState;
-	Lights	: State;
-	Bell	: State;
+	Lights	: Bool;
+	Bell	: Bool;
 	
 	%sensors
 	S1_e : sensorState;
@@ -45,16 +46,32 @@ act
  
  	%Internal interactions
 	%actions 
- 	bell_sig: SigState;
- 	bell_status: SigState;
- 	barrier_sig: SigState;
  	barrier_status: SigState;
 	setTrState: Track # TrState;
 
 	%comm
 	lights_sig_s: barState;
 	lights_sig_r: barState;
-	lights_sig: barState;	
+	lights_sig: barState;
+
+	bell_status_s: Bool;
+	bell_status_r: Bool;
+	bell_status: Bool;
+
+	bell_sig_s: Bool;
+	bell_sig_r: Bool;
+	bell_sig: Bool;
+
+	barrier_sig_s: Bool;
+	barrier_sig_r: Bool;
+	barrier_sig: Bool;
+	
+	barrier_status_s: Bool;
+	barrier_status_r: Bool;
+	barrier_status: Bool;
+
+	
+		
 
 proc 
 
@@ -83,6 +100,13 @@ proc
 	
 
 Light_Controller(ls_sig: barState, bl_sig: Bool, bl_status: Bool, ls_on: Bool) = 
+	
+	(ls_sig == CLOSE || bl_status == true) ->
+		
+
+
+
+
 
 	% If receives signal from Signal controller to close, bell signal is true and Lights are on:
 	(ls_sig == OPEN) -> lights_sig_r(CLOSE) . bell_sig_s(true) . Lights(true) . Light_Controller(ls_sig = CLOSE, bl_sig = true, ls_on = true)
@@ -121,15 +145,22 @@ Bell_Controller(bl_sig: Bool, br_sig: Bool, br_status: Bool, bl_on: Bool) =
  %Barrier_Controller
 
 %sum safe = (S1_e == ON) -> 
-
+;
 
 init 
 
 	allow (
-		{lights_sig, S1_w, S1_e, S2_w, S2_e, Lights, setTrState},
+		{lights_sig, S1_w, S1_e, S2_w, S2_e, Lights, setTrState, barrier_sig, barrier_status, bell_sig, bell_status},
 	comm (
-	{lights_sig_s|lights_sig_r -> lights_sig},
-	Signal_Controller(UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, OPEN) || Light_Controller(OPEN, NOTSEND, OPEN)
+	{lights_sig_s|lights_sig_r -> lights_sig, 
+	bell_sig_s|bell_sig_r -> bell_sig,
+	bell_status_s|bell_status_r -> bell_status, 
+	barrier_status_s|barrier_status_r -> barrier_status,
+	barrier_sig_s|barrier_sig_r -> barrier_sig
+	},
+	Signal_Controller(UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, OPEN) 
+	|| Light_Controller(OPEN, false, false,false)
+	|| Bell_Controller(false, false, false,false)
 
 ));
 
