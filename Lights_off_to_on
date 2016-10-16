@@ -1,0 +1,1 @@
+[true*] forall S: Sensors . [S(detected).(!S(detected))*].[Lights(false)]False

@@ -1,0 +1,1 @@
+[true*][Barriers(CLOSE) . (!Barriers(CLOSE))* . Bell(false)]false

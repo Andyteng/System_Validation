@@ -1,0 +1,7 @@
+[true*] [(S1_e(DETECTED). Barriers(CLOSE).S1_w(DETECTED).(!S1_e(DETECTED))*)
+ +
+ (S1_w(DETECTED). Barriers(CLOSE).S1_e(DETECTED).(!S1_w(DETECTED))*) 
+&& 
+(S2_e(DETECTED). Barriers(CLOSE).S2_w(DETECTED).(!S2_e(DETECTED))*) 
++ 
+(S2_w(DETECTED). Barriers(CLOSE).S2_e(DETECTED).(!S2_w(DETECTED))*). Barriers(CLOSE)]false
