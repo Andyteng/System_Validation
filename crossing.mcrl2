@@ -70,9 +70,9 @@ act
 	barrier_status_r: Bool;
 	barrier_status: Bool;
 
-	lights_status_s: Bool;
-	lights_status_r: Bool;
-	lights_status:   Bool;
+	system_status_s: Bool;
+	system_status_r: Bool;
+	system_status:   Bool;
 
 	
 		
@@ -133,7 +133,7 @@ proc
 			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS2w = true, state = CLOSE))
 				<> Signal_Controller(SS2w = true)))
 
-		+ sum i:Bool . (ls_status != i) -> lights_status_r(i) . Signal_Controller(ls_status = i)
+		+ sum i:Bool . (ls_status != i) -> system_status_r(i) . Signal_Controller(ls_status = i)
 ;
 
 	
@@ -187,13 +187,13 @@ Bell_Controller(bl_sig: Bool, br_sig: Bool, br_status: Bool, bl_on: Bool) =
 	
 
 	+(br_status == false) ->
-		(barrier_status_r(true) . lights_status_s(true) . (bl_sig == true) ->
+		(barrier_status_r(true) . system_status_s(true) . (bl_sig == true) ->
 			Bell_Controller(br_status = true)
 			<>
 			Bell(true) . bell_status_s(true) . Bell_Controller(br_status = true, bl_on = true))
 
 	+(br_status == true) ->
-		(barrier_status_r(false) . lights_status_s(false) . (bl_sig == false) ->
+		(barrier_status_r(false) . system_status_s(false) . (bl_sig == false) ->
 			Bell(false) . bell_status_s(false) . Bell_Controller(br_status = false, bl_on = false)
 			<>
 			Bell_Controller(br_status = false))
@@ -223,10 +223,10 @@ Barrier_Controller(br_sig: Bool, br_status: Bool, br_on: barState) =
 init 
 
 	allow (
-		{lights_sig, S1_w, S1_e, S2_w, S2_e, Lights, Bell, Barriers, setTrState, barrier_sig, barrier_status, bell_sig, bell_status, lights_status},
+		{lights_sig, S1_w, S1_e, S2_w, S2_e, Lights, Bell, Barriers, setTrState, barrier_sig, barrier_status, bell_sig, bell_status, system_status},
 	comm (
 	{lights_sig_s|lights_sig_r -> lights_sig, 
-	lights_status_s|lights_status_r -> lights_status,
+	system_status_s|system_status_r -> system_status,
 	bell_sig_s|bell_sig_r -> bell_sig,
 	bell_status_s|bell_status_r -> bell_status, 
 	barrier_status_s|barrier_status_r -> barrier_status,
