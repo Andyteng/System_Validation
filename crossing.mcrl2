@@ -1,0 +1,243 @@
+sort
+ 	% Multi-Objects
+	SSensor 	= struct S1_e | S1_w | S2_e | S2_w;		% Side train detector sensors
+	StopSign = struct ST1_e | ST1_w | ST2_e | ST1_train | ST2_train;  
+	MSensor 	= struct S1_trian | S2_train;	% Center train detector sensors
+	Light   	= struct L1 | L2;
+	Barrier 	= struct B1 | B2;
+	Track  	= struct T1 | T2;
+	
+	% States
+	State 		= struct ON | OFF;	% Lights, Bell
+	TrState   	= struct FREE | BUSY;      % track
+	SigState 	= struct SEND | NOTSEND; 	% bell_sig, bell_status, barrier_sig, barrier_status (signal state)
+	barState 	= struct OPEN | CLOSE;	% Barriers 
+	sensorState	= struct DETECTED | UNDETECTED; % Sensors 
+	
+	% Current action state
+	Changing = struct CHANGING | STATIC;
+
+map	%Track is safe
+	isFree: TrState # TrState -> Bool;
+	
+eqn
+	isFree (FREE, FREE) = true; 
+	isFree (BUSY, FREE) = false;
+	isFree (FREE, BUSY) = false;
+	isFree (BUSY, BUSY) = false; 
+act 
+
+	% External interactions
+	% action
+	Barriers	: barState;
+	Lights	: Bool;
+	Bell	: Bool;
+	
+	%sensors
+	S1_e : sensorState;
+	S1_w : sensorState;
+	S2_e : sensorState;
+	S2_w : sensorState;
+	S1_train: sensorState;
+	S2_train: sensorState;
+	setSSensor	: SSensor # sensorState;
+	setMSensor	: MSensor # sensorState;
+	
+ 
+ 	%Internal interactions
+	%actions 
+ 	barrier_status: SigState;
+	setTrState: Track # TrState;
+
+	%comm
+	lights_sig_s: barState;
+	lights_sig_r: barState;
+	lights_sig: barState;
+
+	bell_status_s: Bool;
+	bell_status_r: Bool;
+	bell_status: Bool;
+
+	bell_sig_s: Bool;
+	bell_sig_r: Bool;
+	bell_sig: Bool;
+
+	barrier_sig_s: Bool;
+	barrier_sig_r: Bool;
+	barrier_sig: Bool;
+	
+	barrier_status_s: Bool;
+	barrier_status_r: Bool;
+	barrier_status: Bool;
+
+	lights_status_s: Bool;
+	lights_status_r: Bool;
+	lights_status:   Bool;
+
+	
+		
+
+proc 
+
+	% SS1e means Sensors state. 
+	Signal_Controller(st1_e, st1_w, st2_e, st2_w: sensorState, st1_train, st2_train: sensorState, state: barState, SS1e, SS1w, SS2e, SS2w: Bool, ls_status: Bool) = 
+		
+		
+
+		% st1_e
+		% st1_e can only be detected if no train come from S1_w or train come from S1_w while all actuators are closed. 
+		((SS1w == true && ls_status == true) || SS1w == false ) -> (S1_e(DETECTED) . (SS1w == true) -> 		% train is come from st1_w
+			% here means Track 1 is free and SS1w is false
+			((SS2w == false && SS2e == false) -> 	% Track 2 is free 
+				lights_sig_s(OPEN) . Signal_Controller(SS1w = false, state = OPEN)
+				<>
+				Signal_Controller(SS1w = false))
+			% train is come from st1_e
+			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS1e = true, state = CLOSE))
+				<> Signal_Controller(SS1e = true)))
+		
+
+		% st1_w
+		% st1_w can only be detected if no train come from S1_e or train come from S1_e while all actuators are closed. 
+		+ ((SS1e == true && ls_status == true) || SS1e == false ) -> (S1_w(DETECTED) . (SS1e == true) -> 		% train is come from st1_e
+			% here means Track 1 is free and SS1e is false
+			((SS2w == false && SS2e == false) -> 	% Track 2 is free 
+				lights_sig_s(OPEN) . Signal_Controller(SS1e = false, state = OPEN)
+				<>
+				Signal_Controller(SS1e = false))
+			% train is come from st1_w
+			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS1w = true, state = CLOSE))
+				<> Signal_Controller(SS1w = true)))
+		
+		% st2_e
+		% st2_e can only be detected if no train come from S2_w or train come from S2_w while all actuators are closed.
+		+ ((SS2w == true && ls_status == true) || SS2w == false ) -> (S2_e(DETECTED) . (SS2w == true) -> 		% train is come from st2_w()
+			% here means Track 2 is free and SS2w is false
+			((SS1w == false && SS1e == false) -> 	% Track 1 is free 
+				lights_sig_s(OPEN) . Signal_Controller(SS2w = false, state = OPEN)
+				<>
+				Signal_Controller(SS2w = false))
+			% train is come from st2_e
+			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS2e = true, state = CLOSE))
+				<> Signal_Controller(SS2e = true)))
+		
+		% st2_w
+		% st2_w can only be detected if no train come from S2_e or train come from S2_e while all actuators are closed.
+		+ ((SS2e == true && ls_status == true) || SS2e == false ) -> (S2_w(DETECTED) . (SS2e == true) -> 		% train is come from st2_e()
+			% here means Track 2 is free and SS2e is false
+			((SS1w == false && SS1e == false) -> 	% Track 1 is free 
+				lights_sig_s(OPEN) . Signal_Controller(SS2e = false, state = OPEN)
+				<>
+				Signal_Controller(SS2e = false))
+			% train is come from st2_w
+			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS2w = true, state = CLOSE))
+				<> Signal_Controller(SS2w = true)))
+
+		+ sum i:Bool . (ls_status != i) -> lights_status_r(i) . Signal_Controller(ls_status = i)
+;
+
+	
+Light_Controller(ls_sig: barState, bl_sig: Bool, bl_status: Bool, ls_on: Bool) = 
+
+	% If receives signal from Signal controller to close, bell signal is true and Lights are on:
+	(ls_sig == OPEN) ->
+		(lights_sig_r(CLOSE) . (bl_status == false) ->
+			Lights(true) . bell_sig_s(true) . Light_Controller(ls_sig = CLOSE, bl_sig = true, ls_on = true)
+			<>
+			bell_sig_s(true) . Light_Controller(ls_sig = CLOSE, bl_sig = true))
+	
+	% If receives signal from Signal controller to open, bell signal is false and Lights wait for Bell status before they go off	
+	+ (ls_sig == CLOSE) -> 
+		(lights_sig_r(OPEN) . bell_sig_s(false) . (bl_status == true) ->
+			Light_Controller(ls_sig = OPEN, bl_sig = false)
+			<>
+			Lights(false) . Light_Controller(ls_sig = OPEN, bl_sig = false, ls_on = false))
+	
+
+	+(bl_status == false) ->
+		(bell_status_r(true) . (ls_on == true) ->
+			Light_Controller(bl_status = true)
+			<>
+			Lights(true) . Light_Controller(bl_status = true, ls_on = true))
+
+	+(bl_status == true) ->
+		(bell_status_r(false) . (ls_sig == OPEN) ->
+			Lights(false) . Light_Controller(bl_status = false, ls_on = false)
+			<>
+			Light_Controller(bl_status = false))
+
+;
+	
+	
+Bell_Controller(bl_sig: Bool, br_sig: Bool, br_status: Bool, bl_on: Bool) = 
+
+	
+	% If receives signal from Lights controller to close, barrier signal is true and Bell on:
+	(bl_sig == false) -> (bell_sig_r(true) . (br_status == false) ->
+		Bell(true) . bell_status_s(true) . barrier_sig_s(true) . Bell_Controller(bl_sig = true, br_sig = true, bl_on = true)
+		<>
+		barrier_sig_s(true) . Bell_Controller(bl_sig = true, br_sig = true))
+	
+	% If receives signal from Lights controller to open, barrier signal is false and Bell waits for Barrier status before it goes off.
+	+ (bl_sig == true) -> 
+		(bell_sig_r(false) . barrier_sig_s(false) . (br_status == true) ->
+			Bell_Controller(bl_sig = false, br_sig = false)
+			<>
+			Bell(false) . bell_status_s(false) . Bell_Controller(bl_sig = false, br_sig = false, bl_on = false))
+	
+
+	+(br_status == false) ->
+		(barrier_status_r(true) . lights_status_s(true) . (bl_sig == true) ->
+			Bell_Controller(br_status = true)
+			<>
+			Bell(true) . bell_status_s(true) . Bell_Controller(br_status = true, bl_on = true))
+
+	+(br_status == true) ->
+		(barrier_status_r(false) . lights_status_s(false) . (bl_sig == false) ->
+			Bell(false) . bell_status_s(false) . Bell_Controller(br_status = false, bl_on = false)
+			<>
+			Bell_Controller(br_status = false))
+
+
+
+;
+
+Barrier_Controller(br_sig: Bool, br_status: Bool, br_on: barState) = 
+	
+	% Input signal & send a signal to close bell
+	%sum i: Bool . (br_sig != i && i == true) -> 
+	% Barriers could only be closed while it is open
+	%((br_on == OPEN) -> barrier_sig_r(true) . Barriers(CLOSE) . barrier_status_s(true) . Barrier_Controller(br_sig = true, br_on = CLOSE))
+	%<> (br_sig != i && i == false) -> barrier_sig_r(false) . ((br_on == CLOSE) -> 
+	%	Barriers(OPEN). barrier_status_s(false) . Barrier_Controller(br_on = OPEN, br_sig = false))
+
+	% If receives signal from Bell controller to close, Barriers are down:
+	(br_sig == false) -> barrier_sig_r(true) . Barriers(CLOSE) . barrier_status_s(true) . Barrier_Controller(br_sig = true, br_on = CLOSE)
+		
+	
+	% If receives signal from Bell controller to open, Barriers are up.	
+	+ (br_sig == true) -> barrier_sig_r(false) . Barriers(OPEN) . barrier_status_s(false) . Barrier_Controller(br_sig = false, br_on = OPEN)
+			
+;
+
+init 
+
+	allow (
+		{lights_sig, S1_w, S1_e, S2_w, S2_e, Lights, Bell, Barriers, setTrState, barrier_sig, barrier_status, bell_sig, bell_status, lights_status},
+	comm (
+	{lights_sig_s|lights_sig_r -> lights_sig, 
+	lights_status_s|lights_status_r -> lights_status,
+	bell_sig_s|bell_sig_r -> bell_sig,
+	bell_status_s|bell_status_r -> bell_status, 
+	barrier_status_s|barrier_status_r -> barrier_status,
+	barrier_sig_s|barrier_sig_r -> barrier_sig
+	},
+	Signal_Controller(UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, OPEN, false, false, false, false, false) 
+	|| Light_Controller(OPEN, false, false,false)
+	|| Bell_Controller(false, false, false,false)
+	|| Barrier_Controller(false,false,OPEN)
+
+));
+
+
+	
