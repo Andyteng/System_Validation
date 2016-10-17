@@ -107,22 +107,22 @@ proc
 		
 		% st2_e
 		% st2_e can only be detected if no train come from S2_w or train come from S2_w while all actuators are closed.
-		+ ((SS2e == true && ls_status == true) || SS2e == false ) -> (S2_e(DETECTED) . (SS2w == true) -> 		% train is come from st2_w()
+		+ ((SS2e == true && ls_status == true) || SS2e == false ) -> (S2_w(DETECTED) . (SS2e == true) -> 		% train is come from st2_w()
 			% here means Track 2 is free and SS2w is false
 			((SS1w == false && SS1e == false) -> 	% Track 1 is free 
-				lights_sig_s(OPEN) . Signal_Controller(SS2w = false, state = OPEN))
+				lights_sig_s(OPEN) . Signal_Controller(SS2e = false, state = OPEN))
 			% train is come from st2_e
-			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS2e = true, state = CLOSE))
+			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS2w = true, state = CLOSE))
 				<> Signal_Controller(SS2e = true)))
 		
 		% st2_w
 		% st2_w can only be detected if no train come from S2_e or train come from S2_e while all actuators are closed.
-		+ ((SS2w == true && ls_status == true) || SS2w == false ) -> (S2_w(DETECTED) . (SS2e == true) -> 		% train is come from st2_e()
+		+ ((SS2w == true && ls_status == true) || SS2w == false ) -> (S2_e(DETECTED) . (SS2w == true) -> 		% train is come from st2_e()
 			% here means Track 2 is free and SS2e is false
 			((SS1w == false && SS1e == false) -> 	% Track 1 is free 
 				lights_sig_s(OPEN) . Signal_Controller(SS2e = false, state = OPEN))
 			% train is come from st2_w
-			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS2w = true, state = CLOSE))
+			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS2e = true, state = CLOSE))
 				<> Signal_Controller(SS2w = true)))
 
 		+ sum i:Bool . (ls_status != i) -> lights_status_r(i) . Signal_Controller(ls_status = i)
