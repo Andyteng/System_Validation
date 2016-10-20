@@ -137,10 +137,10 @@ proc
 
 		
 		% middle sensor of track 1
-		+ (st1_train == UNDETECTED && (SS1w == true || SS1e == true) && ls_status == true) -> 
+		+ (st1_train == UNDETECTED && (SS1w == true || SS1e == true) && ls_status == true && S1 == false) -> 
 			S1_train(DETECTED) . Signal_Controller(S1 = true)
 		% middle sensor of track 2
-		+ (st2_train == UNDETECTED && (SS2w == true || SS2e == true) && ls_status == true) -> 
+		+ (st2_train == UNDETECTED && (SS2w == true || SS2e == true) && ls_status == true && S2 == false) -> 
 			S2_train(DETECTED) . Signal_Controller(S2 = true)
 			
 ;
