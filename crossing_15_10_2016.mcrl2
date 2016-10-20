@@ -75,19 +75,20 @@ act
 proc 
 
 	% SS1e means Sensors state. 
-	Signal_Controller(st1_e, st1_w, st2_e, st2_w: sensorState, st1_train, st2_train: sensorState, state: barState, SS1e, SS1w, SS2e, SS2w, S1, S2: Bool, ls_status: Bool) = 
+	Signal_Controller(st1_e, st1_w, st2_e, st2_w: sensorState, st1_train, st2_train: sensorState, state: barState, SS1e, SS1w, SS2e, SS2w, S1, S2: Nat, ls_status: Bool) = 
 		
 		
 
 		% st1_e
 		% st1_e can only be detected if no train come from S1_w or train come from S1_w while all actuators are closed. 
-		((SS1w == true && ls_status == true && S1 == true) || SS1w == false ) -> 
+		((SS1w != 0 && ls_status == true && S1 != 0) || SS1w == 0 ) -> 
 			% the S1_e could only be detected only if middle sensor is detected.
-			(S1_e(DETECTED) . (SS1w == true) -> 		% train is come from st1_w
+			(S1_e(DETECTED) . (SS1w != 0) -> 		% train is come from st1_w
+			SS1w = SS1w-1
 			% here means Track 1 is free and SS1w is false
-			((SS2w == false && SS2e == false && S2 == false) -> 	% Track 2 is free 
-				lights_sig_s(OPEN) . Signal_Controller(SS1w = false, state = OPEN, S1 = false)
-				<> Signal_Controller(SS1w = false, S1 = false))
+			((SS2w == 0 && SS2e == 0 && S2 == 0) -> 	% Track 2 is free 
+				lights_sig_s(OPEN) . Signal_Controller(SS1w = 0, state = OPEN, S1 = 0)
+				<> Signal_Controller(SS1w = 0, S1 = 0))
 			% train is come from st1_e
 			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS1e = true, state = CLOSE))
 				<> Signal_Controller(SS1e = true)))
@@ -95,39 +96,39 @@ proc
 
 		% st1_w
 		% st1_w can only be detected if no train come from S1_e or train come from S1_e while all actuators are closed. 
-		+ ((SS1e == true && ls_status == true && S1 == true) || SS1e == false ) -> 
+		+ ((SS1e == true && ls_status == true && S1 == true) || SS1e == 0 ) -> 
 			% the S1_w could only be detected only if middle sensor is detected.
 			(S1_w(DETECTED) . (SS1e == true) -> 		% train is come from st1_e
 			% here means Track 1 is free and SS1e is false
-			((SS2w == false && SS2e == false && S2 == false) -> 	% Track 2 is free 
-				lights_sig_s(OPEN) . Signal_Controller(SS1e = false, state = OPEN, S1 = false)
-				<> Signal_Controller(SS1e = false, S1 = false))
+			((SS2w == 0 && SS2e == 0 && S2 == 0) -> 	% Track 2 is free 
+				lights_sig_s(OPEN) . Signal_Controller(SS1e = 0, state = OPEN, S1 = 0)
+				<> Signal_Controller(SS1e = 0, S1 = 0))
 			% train is come from st1_w
 			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS1w = true, state = CLOSE))
 				<> Signal_Controller(SS1w = true)))
 		
 		% st2_e
 		% st2_e can only be detected if no train come from S2_w or train come from S2_w while all actuators are closed.
-		+ ((SS2w == true && ls_status == true && S2 == true) || SS2w == false ) -> 
+		+ ((SS2w == true && ls_status == true && S2 == true) || SS2w == 0 ) -> 
 			% the S2_e could only be detected only if middle sensor is detected.
 			(S2_e(DETECTED) . (SS2w == true) -> 		% train is come from st2_w()
 			% here means Track 2 is free and SS2w is false
-			((SS1w == false && SS1e == false && S1 == false) -> 	% Track 1 is free 
-				lights_sig_s(OPEN) . Signal_Controller(SS2w = false, state = OPEN, S2 = false)
-				<> Signal_Controller(SS2w = false, S2 = false))
+			((SS1w == 0 && SS1e == 0 && S1 == 0) -> 	% Track 1 is free 
+				lights_sig_s(OPEN) . Signal_Controller(SS2w = 0, state = OPEN, S2 = 0)
+				<> Signal_Controller(SS2w = 0, S2 = 0))
 			% train is come from st2_e
 			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS2e = true, state = CLOSE))
 				<> Signal_Controller(SS2e = true)))
 		
 		% st2_w
 		% st2_w can only be detected if no train come from S2_e or train come from S2_e while all actuators are closed.
-		+ ((SS2e == true && ls_status == true && S2 == true) || SS2e == false ) -> 
+		+ ((SS2e == true && ls_status == true && S2 == true) || SS2e == 0 ) -> 
 			% the S2_w could only be detected only if middle sensor is detected.
 			(S2_w(DETECTED) . (SS2e == true) -> 		% train is come from st2_e()
 			% here means Track 2 is free and SS2e is false
-			((SS1w == false && SS1e == false && S1 == false) -> 	% Track 1 is free 
-				lights_sig_s(OPEN) . Signal_Controller(SS2e = false, state = OPEN, S2 = false)
-				<> Signal_Controller(SS2e = false, S2 = false))
+			((SS1w == 0 && SS1e == 0 && S1 == 0) -> 	% Track 1 is free 
+				lights_sig_s(OPEN) . Signal_Controller(SS2e = 0, state = OPEN, S2 = 0)
+				<> Signal_Controller(SS2e = 0, S2 = 0))
 			% train is come from st2_w
 			<> ((state == OPEN) -> (lights_sig_s(CLOSE) . Signal_Controller(SS2w = true, state = CLOSE))
 				<> Signal_Controller(SS2w = true)))
@@ -137,10 +138,10 @@ proc
 
 		
 		% middle sensor of track 1
-		+ (st1_train == UNDETECTED && (SS1w == true || SS1e == true) && ls_status == true && S1 == false) -> 
+		+ (st1_train == UNDETECTED && (SS1w == true || SS1e == true) && ls_status == true && S1 == 0) -> 
 			S1_train(DETECTED) . Signal_Controller(S1 = true)
 		% middle sensor of track 2
-		+ (st2_train == UNDETECTED && (SS2w == true || SS2e == true) && ls_status == true && S2 == false) -> 
+		+ (st2_train == UNDETECTED && (SS2w == true || SS2e == true) && ls_status == true && S2 == 0) -> 
 			S2_train(DETECTED) . Signal_Controller(S2 = true)
 			
 ;
@@ -232,7 +233,7 @@ init
 	barrier_status_s|barrier_status_r -> barrier_status,
 	barrier_sig_s|barrier_sig_r -> barrier_sig
 	},
-	Signal_Controller(UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, OPEN, false, false, false, false, false, false, false) 
+	Signal_Controller(UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, UNDETECTED, OPEN, 0, 0, 0, 0, 0, 0, false) 
 	|| Light_Controller(OPEN, false, false,false)
 	|| Bell_Controller(false, false, false,false)
 	|| Barrier_Controller(false,false,OPEN)
