@@ -93,7 +93,7 @@ proc
 
 		% st1_e
 		% st1_e can only be detected if no train come from S1_w or train come from S1_w while all actuators are closed. 
-		((SS1w == true && S1 == true ) || SS1w == false ) -> 
+		((SS1w == true && S1 == true ) || (SS1w == false && SS1e == false)) -> 
 			% the S1_e could only be detected only if middle sensor is detected.
 			(S1_e(DETECTED) . (SS1w == true) -> 		% train is come from st1_w
 			% here means Track 1 is free and SS1w is false
@@ -106,7 +106,7 @@ proc
 
 		% st1_w
 		% st1_w can only be detected if no train come from S1_e or train come from S1_e while all actuators are closed. 
-		+ ((SS1e == true && S1 == true) || SS1e == false ) -> 
+		+ ((SS1e == true && S1 == true) || (SS1e == false && SS1w == false)) -> 
 			% the S1_w could only be detected only if middle sensor is detected.
 			(S1_w(DETECTED) . (SS1e == true) -> 		% train is come from st1_e
 			% here means Track 1 is free and SS1e is false
@@ -118,7 +118,7 @@ proc
 		
 		% st2_e
 		% st2_e can only be detected if no train come from S2_w or train come from S2_w while all actuators are closed.
-		+ ((SS2w == true && S2 == true) || SS2w == false ) -> 
+		+ ((SS2w == true && S2 == true) || (SS2w == false && SS2e == false)) -> 
 			% the S2_e could only be detected only if middle sensor is detected.
 			(S2_e(DETECTED) . (SS2w == true) -> 		% train is come from st2_w()
 			% here means Track 2 is free and SS2w is false
@@ -130,7 +130,7 @@ proc
 		
 		% st2_w
 		% st2_w can only be detected if no train come from S2_e or train come from S2_e while all actuators are closed.
-		+ ((SS2e == true && S2 == true) || SS2e == false ) -> 
+		+ ((SS2e == true && S2 == true) || (SS2e == false && SS2w == false)) -> 
 			% the S2_w could only be detected only if middle sensor is detected.
 			(S2_w(DETECTED) . (SS2e == true) -> 		% train is come from st2_e()
 			% here means Track 2 is free and SS2e is false
