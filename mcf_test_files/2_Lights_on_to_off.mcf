@@ -1,0 +1,1 @@
+[true*] exists S:SSensor . [setSSensor(S , DETECTED)*. Lights(false)]false

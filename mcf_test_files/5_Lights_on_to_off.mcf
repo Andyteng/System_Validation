@@ -1,0 +1,3 @@
+[true* . Bell(true) . (!Bell(false))* . Lights(false)]false
+
+

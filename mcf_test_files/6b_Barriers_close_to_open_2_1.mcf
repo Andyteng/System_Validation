@@ -1,0 +1,1 @@
+[true*.S2_train(DETECTED).S2_train(UNDETECTED)*.S1_train(UNDETECTED).!Barriers(CLOSE)*][Barriers(CLOSE)]false

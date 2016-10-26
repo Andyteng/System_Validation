@@ -1,0 +1,1 @@
+[true*] forall SM: MSensor. [Barriers(OPEN).(!Barriers(CLOSE))*.setMSensor(SM,DETECTED)]false

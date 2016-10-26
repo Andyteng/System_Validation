@@ -1,0 +1,312 @@
+sort
+	
+	% States
+	State 	= struct ON | OFF;	% Lights, Bell
+	TrState   	= struct FREE | BUSY;      % track
+	SigState 	= struct SEND | NOTSEND; 	% bell_sig, bell_status, barrier_sig, barrier_status (signal state)
+	barState 	= struct OPEN | CLOSE;	% Barriers 
+	sensorState = struct DETECTED | UNDETECTED; % Sensors 
+
+	Trackstate = struct empty | detected | crossing | leaving;
+	Direction = struct no |west | east; 	% the train is coming FROM this side 
+	Track = struct track(Trackstate, Direction);
+
+	
+	SSensor 	= struct S1_e | S1_w | S2_e | S2_w;
+	MSensor 	= struct S1_train | S2_train;
+
+map	
+	detect: 	 Track # Direction -> Track;		% train is being detected by side sensor
+	enter: 	             Track -> Track;		% train enters the crossing (detected by middle sensor)
+	leave:                 Track -> Track;	% train starts leaving (undetected by middle sensor)
+	undetect:		    Track -> Track;	% train detected by opposite side sensor
+	state:                 Track -> Trackstate;	
+	from:	              Track -> Direction;
+
+
+var
+	s: Trackstate;
+	d,e: Direction;
+	
+eqn
+	detect(track(s,d), e) 	= track(detected, e);
+	enter(track(s,d)) 		= track(crossing, d);
+	leave(track(s,d)) 		= track(leaving, d);
+	undetect(track(s,d))	= track(empty, no);
+	state(track(s,d))		= s;
+	from(track(s,d))		= d;
+
+	 
+act 
+	% External interactions
+	% action
+	Barriers	: barState;
+	Lights	: Bool;
+	Bell	: Bool;
+	
+	%sensors
+	S1_e : sensorState;
+	S1_w : sensorState;
+	S2_e : sensorState;
+	S2_w : sensorState;
+	S1_train: sensorState;
+	S2_train: sensorState;
+
+	setSSensor : SSensor # sensorState;
+	setMSensor : MSensor # sensorState;
+	
+ 
+ 	%Internal interactions
+	%actions 
+ 	barrier_status: SigState;
+
+
+	%comm
+	lights_sig_s: barState;
+	lights_sig_r: barState;
+	lights_sig: barState;
+
+
+	bell_status_s: Bool;
+	bell_status_r: Bool;
+	bell_status: Bool;
+
+
+	bell_sig_s: Bool;
+	bell_sig_r: Bool;
+	bell_sig: Bool;
+
+
+	barrier_sig_s: Bool;
+	barrier_sig_r: Bool;
+	barrier_sig: Bool;
+	
+	barrier_status_s: Bool;
+	barrier_status_r: Bool;
+	barrier_status: Bool;
+
+
+	system_status_s, 
+	system_status_r, 
+	system_status: Bool;
+
+
+	
+		
+
+
+proc 
+
+
+	% SS1e means Sensors state. 
+	Signal_Controller(t1, t2: Track, sig_state: barState, sys_status: Bool) = 
+				% state -> sig_state ; ls_status -> sys_status
+		
+
+	((sig_state == OPEN && sys_status == false) || (sig_state == CLOSE && sys_status == true) ) -> (
+		% st1_e
+		% st1_e can only be detected if train comes from S1_w, passed crossing and crossing is open(if no train on track 2), OR no other train is coming on track 1
+		( (from(t1) == west && state(t1) == leaving && (sys_status == false || state(t2) != empty)) || (state(t1) == empty) ) -> 
+			% the S1_e could only be detected only if middle sensor is detected.
+			(S1_e(DETECTED) . (from(t1) == west) -> 		% train is come from st1_w
+			% here means Track 1 will become free
+			Signal_Controller( t1 = undetect(t1) )
+
+			% train is coming from st1_e
+			<> ((sig_state == OPEN) -> lights_sig_s(CLOSE) . Signal_Controller(t1 = detect(t1,east), sig_state = CLOSE)
+				<> Signal_Controller(t1 = detect(t1,east)) ))
+
+		% st1_w
+		% st1_w can only be detected if train comes from S1_e, passed crossing and crossing is open(if no train on track 2), OR no other train is coming on track 1 
+		+( (from(t1) == east && state(t1) == leaving && (sys_status == false || state(t2) != empty)) || (state(t1) == empty) ) -> 
+			% the S1_e could only be detected only if middle sensor is detected.
+			(S1_w(DETECTED) . (from(t1) == east) -> 		% train is come from st1_e
+			% here means Track 1 will become free
+			Signal_Controller( t1 = undetect(t1) )
+
+			% train is coming from st1_w
+			<> ((sig_state == OPEN) -> lights_sig_s(CLOSE) . Signal_Controller(t1 = detect(t1,west), sig_state = CLOSE)
+				<> Signal_Controller(t1 = detect(t1,west)) ))
+
+
+		% st2_e
+		% st2_e can only be detected if train comes from S2_w, passed crossing and crossing is open(if no train on track 1), OR no other train is coming on track 2 
+		+( (from(t2) == west && state(t2) == leaving && (sys_status == false || state(t1) != empty)) || (state(t2) == empty) ) -> 
+			% the S1_e could only be detected only if middle sensor is detected.
+			(S2_e(DETECTED) . (from(t2) == west) -> 		% train is come from st2_w
+			% here means Track 2 will become free
+			Signal_Controller( t2 = undetect(t2) )
+
+			% train is coming from st2_e
+			<> ((sig_state == OPEN) -> lights_sig_s(CLOSE) . Signal_Controller(t2 = detect(t2,east), sig_state = CLOSE)
+				<> Signal_Controller( t2 = detect(t2,east) )))
+
+		
+		% st2_w
+		% st2_w can only be detected if train comes from S2_e, passed crossing and crossing is open(if no train on track 1), OR no other train is coming on track 2
+		+( (from(t2) == east && state(t2) == leaving && (sys_status == false || state(t1) != empty)) || (state(t2) == empty) ) -> 
+			% the S1_e could only be detected only if middle sensor is detected.
+			(S2_w(DETECTED) . (from(t2) == east) -> 		% train is come from st2_e
+			% here means Track 2 will become free
+			Signal_Controller( t2 = undetect(t2) )
+
+			% train is coming from st2_w
+			<> ((sig_state == OPEN) -> lights_sig_s(CLOSE) . Signal_Controller(t2 = detect(t2,west), sig_state = CLOSE)
+				<> Signal_Controller( t2 = detect(t2,west) )))
+	
+
+	
+		
+		% middle sensor of track 1
+		%
+		% if a train is detected and the crossing if fully closed
+		+ (state(t1) == detected && sys_status == true) -> 
+			S1_train(DETECTED) . Signal_Controller(t1 = enter(t1))
+
+			% middle sensor of track 1 is undetected, train has already passed the middle sensor of track 1
+
+									% if track2 is safe
+			<> ( (state(t1) == crossing) -> S1_train(UNDETECTED) . ((state(t2) == empty || state(t2) == leaving) ->
+				% Both tracks are free
+				(lights_sig_s(OPEN). Signal_Controller(t1 = leave(t1), sig_state = OPEN))
+				% track2 is not free
+				<> Signal_Controller(t1 = leave(t1)) ))
+
+
+		% middle sensor of track 2
+		%
+		% if a train is detected and the crossing if fully closed
+		+ (state(t2) == detected && sys_status == true) -> 
+			S2_train(DETECTED) . Signal_Controller(t2 = enter(t2))
+
+			% middle sensor of track 2 is undetected, train has already passed the middle sensor of track 2
+
+									% if track1 is safe
+			<> ( (state(t2) == crossing) -> S2_train(UNDETECTED) . ((state(t1) == empty || state(t1) == leaving) ->
+				% Both tracks are free
+				(lights_sig_s(OPEN). Signal_Controller(t2 = leave(t2), sig_state = OPEN))
+				% track2 is not free
+				<> Signal_Controller(t2 = leave(t2)) ))
+
+		)
+
+
+		% Status of all actuators 
+		+ system_status_r(true) . Signal_Controller(sys_status = true)
+		+ system_status_r(false) . Signal_Controller(sys_status = false)
+;
+
+
+	
+Light_Controller(ls_sig: barState, bl_sig: Bool, bl_status: Bool, ls_on: Bool) = 
+
+
+	% If receives signal from Signal controller to close, bell signal is true and Lights are on:
+	lights_sig_r(CLOSE) . (ls_on == false) ->
+		Lights(true) . bell_sig_s(true) . Light_Controller(ls_sig = CLOSE, bl_sig = true, ls_on = true)
+		<>
+		bell_sig_s(true) . Light_Controller(ls_sig = CLOSE, bl_sig = true)
+	
+	% If receives signal from Signal controller to open, bell signal is false and Lights wait for Bell status before they go off	
+	+ lights_sig_r(OPEN) . bell_sig_s(false) . (bl_status == true) ->
+			Light_Controller(ls_sig = OPEN, bl_sig = false)
+			<>
+			Lights(false). Light_Controller(ls_sig = OPEN, bl_sig = false, ls_on = false)
+	
+
+
+	+ bell_status_r(true) . (ls_sig == CLOSE) ->
+			system_status_s(true) . Light_Controller(bl_status = true)
+			<>
+			Lights(true). Light_Controller(bl_status = true, ls_on = true)
+
+
+	+ bell_status_r(false) . (ls_sig == OPEN) ->
+			Lights(false) . system_status_s(false) . Light_Controller(bl_status = false, ls_on = false)
+			<>
+			Light_Controller(bl_status = false)
+
+
+;
+	
+	
+Bell_Controller(bl_sig: Bool, br_sig: Bool, br_status: Bool, bl_on: Bool) = 
+
+
+	
+	% If receives signal from Signal controller to close, bell signal is true and Lights are on:
+	bell_sig_r(true) . (bl_on == false) ->
+		Bell(true) . barrier_sig_s(true) . Bell_Controller(bl_sig = true, br_sig = true, bl_on = true)
+		<>
+		barrier_sig_s(true) . Bell_Controller(bl_sig = true, br_sig = true)
+	
+	% If receives signal from Signal controller to open, bell signal is false and Lights wait for Bell status before they go off	
+	+ bell_sig_r(false) . barrier_sig_s(false) . (br_status == true) ->
+		Bell_Controller(bl_sig = false, br_sig = false)
+		<>
+		Bell(false) . Bell_Controller(bl_sig = false, br_sig = false, bl_on = false)
+	
+
+
+	+ barrier_status_r(true) . (bl_sig == true) ->
+			bell_status_s(true) . Bell_Controller(br_status = true)
+			<>
+			Bell(true). Bell_Controller(br_status = true, bl_on = true)
+
+
+	+ barrier_status_r(false) . (bl_sig == false) ->
+			Bell(false) . bell_status_s(false) . Bell_Controller(br_status = false, bl_on = false)
+			<>
+			Bell_Controller(br_status = false)
+
+
+
+;
+
+
+Barrier_Controller(br_sig: Bool, br_status: Bool, br_on: barState) = 
+	
+	% Input signal & send a signal to close bell
+	%sum i: Bool . (br_sig != i && i == true) -> 
+	% Barriers could only be closed while it is open
+	%((br_on == OPEN) -> barrier_sig_r(true) . Barriers(CLOSE) . barrier_status_s(true) . Barrier_Controller(br_sig = true, br_on = CLOSE))
+	%<> (br_sig != i && i == false) -> barrier_sig_r(false) . ((br_on == CLOSE) -> 
+	%	Barriers(OPEN). barrier_status_s(false) . Barrier_Controller(br_on = OPEN, br_sig = false))
+
+
+	barrier_sig_r(true) . Barriers(CLOSE) . barrier_status_s(true) . Barrier_Controller(br_sig = true, br_on = CLOSE)
+
+	+ barrier_sig_r(false) . Barriers(OPEN). barrier_status_s(false) . Barrier_Controller(br_on = OPEN, br_sig = false)
+
+
+;
+
+
+init 
+
+
+	allow (
+		{lights_sig, S1_w, S1_e, S2_w, S2_e, S1_train, S2_train, Lights, Bell, Barriers, barrier_sig, barrier_status, bell_sig, bell_status, system_status},
+	comm (
+	{lights_sig_s|lights_sig_r -> lights_sig, 
+	system_status_s|system_status_r -> system_status,
+	bell_sig_s|bell_sig_r -> bell_sig,
+	bell_status_s|bell_status_r -> bell_status, 
+	barrier_status_s|barrier_status_r -> barrier_status,
+	barrier_sig_s|barrier_sig_r -> barrier_sig
+	},
+	Signal_Controller(track(empty, no), track(empty, no), OPEN, false) 
+	|| Light_Controller(OPEN, false, false,false)
+	|| Bell_Controller(false, false, false,false)
+	|| Barrier_Controller(false,false,OPEN)
+
+
+));
+
+
+
+
+	
+
+
+
