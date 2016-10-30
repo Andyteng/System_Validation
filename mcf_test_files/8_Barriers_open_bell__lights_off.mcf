@@ -1,1 +1,1 @@
-[true*.Barriers(CLOSE)][Bell(true)]false && [true*.Barriers(CLOSE)][Lights(true)]false
+[true*.Barriers(CLOSE)]false => [Bell(true)]false && [Lights(true)]false

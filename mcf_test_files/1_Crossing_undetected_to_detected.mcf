@@ -1,1 +1,3 @@
-[true*] forall SM: MSensor. [Barriers(OPEN).(!Barriers(CLOSE))*.setMSensor(SM,DETECTED)]false
+[true*] forall SM: MSensor. [Barriers(OPEN).(!Barriers(CLOSE))*.setMSensor(SM,DETECTED)]false 
+|| 
+forall SC : MSensor.[(!Barriers(CLOSE)).setMSensor(SC, DETECTED)]false
