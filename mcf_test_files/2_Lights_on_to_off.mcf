@@ -1,1 +1,1 @@
-[true*] exists S:SSensor . [setSSensor(S , DETECTED). Lights(false)]false
+[true*] exists S:SSensor . [setSSensor(S , DETECTED). lights_sig_s(CLOSE)] [!Lights(true)] false
